@@ -93,21 +93,26 @@ class HipChat extends Adapter
           @logger.error "Can't list users: #{errmsg err}" if err
 
       handleMessage = (opts) =>
+
+        # This used to:
         # buffer message events until the roster fetch completes
-        # to ensure user data is properly loaded
-        init.done =>
-          {getAuthor, message, reply_to, room} = opts
-          author = getAuthor()
-          author.reply_to = reply_to
-          author.room = room
-          @receive new TextMessage(author, message)
+        # to ensure user data is properly loaded  
+        # Using a promise like this:
+        # init.done =>
+        # But for some reason the promise never returns, I think waiting for
+        # roster data is only an issue for large lists of users
+        {getAuthor, message, reply_to, room} = opts
+        author = getAuthor()
+        author.reply_to = reply_to
+        author.room = room
+        @receive new TextMessage(author, message)
 
       connector.onMessage (channel, from, message) =>
         # reformat leading @mention name to be like "name: message" which is
         # what hubot expects
         mention_name = connector.mention_name
         regex = new RegExp "^@#{mention_name}\\b", "i"
-        message = message.replace regex, "#{mention_name}: "
+        message = message.replace regex, "#{mention_name}:"
         handleMessage
           getAuthor: => @robot.brain.userForName(from)
           message: message
